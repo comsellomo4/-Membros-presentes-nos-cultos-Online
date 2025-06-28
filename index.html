@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Registro de Presença Corporativa</title>
+  <style>
+    body {
+      background-color: #0d0d0d;
+      color: #f44336;
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    header {
+      background: #1a1a1a;
+      padding: 20px;
+      text-align: center;
+      border-bottom: 2px solid #333;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 24px;
+      color: #f44336;
+    }
+    main {
+      max-width: 1000px;
+      margin: 30px auto;
+      padding: 20px;
+    }
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    select,
+    button,
+    input {
+      padding: 12px;
+      font-size: 16px;
+      border: none;
+      border-radius: 5px;
+      background-color: #222;
+      color: #f44336;
+    }
+    button {
+      background-color: #333;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #444;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 10px;
+    }
+    th,
+    td {
+      padding: 10px;
+      border-bottom: 1px solid #444;
+      text-align: left;
+      color: #ddd;
+    }
+    th {
+      background-color: #1c1c1c;
+      color: #bbb;
+    }
+    .historico {
+      margin-top: 40px;
+    }
+
+    /* Estilos para impressão */
+    @media print {
+      body * {
+        visibility: hidden;
+      }
+      #printArea,
+      #printArea * {
+        visibility: visible;
+      }
+      #printArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+      button,
+      .input-group {
+        display: none;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>📋 Sistema de Registro de Presença</h1>
+  </header>
+  <main>
+    <div class="input-group">
+      <input type="text" id="nomeMembro" placeholder="Digite o nome do novo membro" style="flex: 2" />
+      <button onclick="cadastrarMembro()">Cadastrar</button>
+    </div>
+
+    <div class="input-group">
+      <select id="selecaoMembro"></select>
+      <button onclick="registrarPresenca()">Confirmar Presença</button>
+    </div>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Data</th>
+          <th>Hora</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaPresenca"></tbody>
+    </table>
+
+    <div class="historico" id="printArea">
+      <h2 style="color: #f44336">Histórico Completo</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Data</th>
+            <th>Hora</th>
+          </tr>
+        </thead>
+        <tbody id="tabelaHistorico"></tbody>
+      </table>
+    </div>
+
+    <button onclick="window.print()" style="margin-top: 20px; padding: 10px 20px;">
+      🖨️ Imprimir Histórico
+    </button>
+  </main>
+
+  <script>
+    let historico = JSON.parse(localStorage.getItem('presencas')) || [];
+    let membros = JSON.parse(localStorage.getItem('membros')) || [];
+
+    function salvarTudo() {
+      localStorage.setItem('presencas', JSON.stringify(historico));
+      localStorage.setItem('membros', JSON.stringify(membros));
+      atualizarTabelas();
+      atualizarSelecao();
+    }
+
+    function formatarDataHora(data) {
+      const d = new Date(data);
+      return {
+        data: d.toLocaleDateString('pt-BR'),
+        hora: d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' }),
+      };
+    }
+
+    function cadastrarMembro() {
+      const input = document.getElementById('nomeMembro');
+      const nome = input.value.trim();
+      if (!nome) return alert('Digite um nome');
+      if (membros.includes(nome)) return alert('Esse membro já está cadastrado');
+      membros.push(nome);
+      membros.sort((a, b) => a.localeCompare(b));
+      input.value = '';
+      salvarTudo();
+      alert(`Membro "${nome}" cadastrado com sucesso.`);
+    }
+
+    function registrarPresenca() {
+      const select = document.getElementById('selecaoMembro');
+      const nome = select.value;
+      if (!nome) return alert('Selecione um membro para registrar presença');
+
+      const agora = new Date().toISOString();
+      historico.push({ nome, horario: agora });
+      salvarTudo();
+      alert(`Presença registrada para ${nome}`);
+    }
+
+    function atualizarSelecao() {
+      const select = document.getElementById('selecaoMembro');
+      select.innerHTML = '<option value="">-- Selecione um membro --</option>';
+      membros.forEach((nome) => {
+        const opt = document.createElement('option');
+        opt.value = nome;
+        opt.textContent = nome;
+        select.appendChild(opt);
+      });
+    }
+
+    function atualizarTabelas() {
+      const tabela1 = document.getElementById('tabelaPresenca');
+      const tabela2 = document.getElementById('tabelaHistorico');
+      tabela1.innerHTML = '';
+      tabela2.innerHTML = '';
+
+      const hoje = new Date().toISOString().split('T')[0];
+      historico.forEach((reg) => {
+        const { data, hora } = formatarDataHora(reg.horario);
+        const linha = `<tr><td>${reg.nome}</td><td>${data}</td><td>${hora}</td></tr>`;
+        tabela2.innerHTML += linha;
+        if (reg.horario.startsWith(hoje)) tabela1.innerHTML += linha;
+      });
+    }
+
+    atualizarTabelas();
+    atualizarSelecao();
+  </script>
+</body>
+</html>
